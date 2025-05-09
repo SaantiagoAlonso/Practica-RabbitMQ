@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Monitoreo IoT - Datos completos por sensor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Estilos -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background-color: #f9f9f9;
+    }
+
+    h2 {
+      color: #333;
+    }
+
+    .sensor-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .sensor-box {
+      flex: 1;
+      min-width: 300px;
+      max-width: 400px;
+      height: 500px;
+      padding: 1rem;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sensor-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 0.3rem;
+    }
+
+    .logs {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      max-height: 300px;
+      border: 1px solid #eee;
+      padding: 0.5rem;
+      background: #fff;
+    }
+
+    .log-entry {
+      padding: 0.3rem 0.5rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    .sensor-status {
+      font-size: 0.95rem;
+      background: #f0f0f0;
+      padding: 0.5rem;
+      border-left: 4px solid #4CAF50;
+      border-radius: 4px;
+    }
+  </style>
+
+  <!-- Librerías externas -->
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+  <h2>📡 Monitoreo de Sensores Dinámico</h2>
+
+  <div class="sensor-container" id="sensorContainer">
+    <!-- Aquí se insertan automáticamente los sensores -->
+  </div>
+
+  <script>
+    const sensors = {}; // Almacenar referencias por sensor
+
+    function addOrUpdateSensor(data) {
+      const sensorId = data.deviceId;
+
+      if (!sensors[sensorId]) {
+        createSensorBox(sensorId);
+      }
+
+      const sensor = sensors[sensorId];
+
+      // Añadir nueva temperatura al log
+      const time = new Date(data.timestamp).toLocaleTimeString();
+      const entry = document.createElement("div");
+      entry.className = "log-entry";
+      entry.textContent = `${time} → Temperatura: ${data.temperature}°C`;
+      sensor.logsDiv.appendChild(entry);
+      sensor.logsDiv.scrollTop = sensor.logsDiv.scrollHeight; // Auto-scroll
+    }
+
+    function updateSensorStatus(data) {
+      const sensorId = data.deviceId;
+
+      if (!sensors[sensorId]) {
+        createSensorBox(sensorId);
+      }
+
+      const sensor = sensors[sensorId];
+      const statusDiv = sensor.statusDiv;
+
+      // Actualizar información del dispositivo
+      const deviceTemp = data.temperature !== undefined ? `${data.temperature}°C` : "--°C";
+
+      statusDiv.innerHTML = `
+        <strong>Estado:</strong> ${data.status || "--"}<br>
+        <strong>Batería:</strong> ${data.battery !== undefined ? `${data.battery}%` : "--%" }<br>
+        <strong>Temperatura Dispositivo:</strong> ${deviceTemp}
+      `;
+    }
+
+    function createSensorBox(sensorId) {
+      const container = document.getElementById("sensorContainer");
+
+      const box = document.createElement("div");
+      box.className = "sensor-box";
+
+      const title = document.createElement("div");
+      title.className = "sensor-title";
+      title.textContent = `📡 ${sensorId}`;
+
+      const logsDiv = document.createElement("div");
+      logsDiv.className = "logs";
+      logsDiv.id = `logs-${sensorId}`;
+      logsDiv.textContent = "Sin datos aún";
+
+      const statusDiv = document.createElement("div");
+      statusDiv.className = "sensor-status";
+      statusDiv.textContent = "Estado del dispositivo: --";
+
+      box.appendChild(title);
+      box.appendChild(logsDiv);
+      box.appendChild(statusDiv);
+
+      container.appendChild(box);
+
+      sensors[sensorId] = { box, logsDiv, statusDiv };
+    }
+
+    // Conectar a WebSocket STOMP
+    const socket = new SockJS('http://localhost:8062/ws');
+    const stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, () => {
+      console.log("✅ WebSocket conectado");
+
+      // Suscribirse a datos de temperatura
+      stompClient.subscribe('/topic/device/data', (message) => {
+        try {
+          const msg = JSON.parse(message.body);
+          addOrUpdateSensor(msg);
+        } catch (e) {
+          console.error("❌ Error procesando mensaje de datos:", e);
+        }
+      });
+
+      // Suscribirse al estado del dispositivo
+      stompClient.subscribe('/topic/device/status', (message) => {
+        try {
+          const msg = JSON.parse(message.body);
+          updateSensorStatus(msg);
+        } catch (e) {
+          console.error("❌ Error procesando mensaje de estado:", e);
+        }
+      });
+
+    }, (error) => {
+      console.error("❌ Error conectando al WebSocket:", error);
+    });
+  </script>
+</body>
+</html>

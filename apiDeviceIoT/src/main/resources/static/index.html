@@ -1,0 +1,44 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="es">-->
+<!--<head>-->
+<!--  <meta charset="UTF-8">-->
+<!--  <title>Monitor de Dispositivos IoT</title>-->
+<!--  <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>-->
+<!--  <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>-->
+<!--</head>-->
+<!--<body>-->
+<!--<h1>Monitor de Dispositivos IoT</h1>-->
+<!--<input type="text" id="deviceName" placeholder="Nombre del dispositivo">-->
+<!--<button onclick="connect()">Conectar</button>-->
+<!--<pre id="output"></pre>-->
+
+<!--<script>-->
+<!--  let stompClient = null;-->
+
+<!--  function connect() {-->
+<!--      const deviceName = document.getElementById('deviceName').value.trim();-->
+<!--      if (!deviceName) {-->
+<!--          alert("Por favor, ingresa el nombre del dispositivo.");-->
+<!--          return;-->
+<!--      }-->
+
+<!--      const socket = new SockJS('/ws');-->
+<!--      stompClient = Stomp.over(socket);-->
+
+<!--      stompClient.connect({}, () => {-->
+<!--          stompClient.subscribe(`/topic/data/${deviceName}`, (msg) => {-->
+<!--              const data = JSON.parse(msg.body);-->
+<!--              document.getElementById('output').textContent += `📡 [DATA] ${JSON.stringify(data)}\n`;-->
+<!--          });-->
+
+<!--          stompClient.subscribe(`/topic/status/${deviceName}`, (msg) => {-->
+<!--              const status = JSON.parse(msg.body);-->
+<!--              document.getElementById('output').textContent += `📶 [STATUS] ${JSON.stringify(status)}\n`;-->
+<!--          });-->
+<!--      });-->
+<!--  }-->
+<!--</script>-->
+<!--</body>-->
+<!--</html>-->
+
+
